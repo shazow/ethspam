@@ -67,7 +67,7 @@ func (g *generator) Query(w io.Writer, s State) error {
 
 	var current int64
 	for _, q := range g.queries {
-		// TODO: Check for off-by-one?
+		// TODO: Test for off-by-one
 		current += q.Weight
 		if current >= weight {
 			return q.Generate(w, s)
