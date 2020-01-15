@@ -50,11 +50,12 @@ func genEthGetTransactionByHash(w io.Writer, s State) error {
 
 func genEthGetLogs(w io.Writer, s State) error {
 	r := s.RandInt64()
+	// TODO: Favour latest/recent block on a curve
 	fromBlock := s.CurrentBlock() - uint64(r%5000) // Pick a block within the last ~day
 	toBlock := s.CurrentBlock() - uint64(r%5)      // Within the last ~minute
 	address, topics := s.RandomContract()
 	topicsJoined := strings.Join(topics, `","`)
-	_, err := fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_getLogs","params":{"fromBlock":"0x%x","toBlock":"0x%x","address":"%s","topics":["%s"]}}`+"\n", s.ID(), fromBlock, toBlock, address, topicsJoined)
+	_, err := fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_getLogs","params":[{"fromBlock":"0x%x","toBlock":"0x%x","address":"%s","topics":["%s"]}]}`+"\n", s.ID(), fromBlock, toBlock, address, topicsJoined)
 	return err
 }
 
