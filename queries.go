@@ -6,17 +6,6 @@ import (
 	"strings"
 )
 
-func genEthCall(w io.Writer, s State) error {
-	r := s.RandInt64()
-	fromBlock := s.CurrentBlock() - uint64(r%5000) // Pick a block within the last ~day
-	toBlock := s.CurrentBlock() - uint64(r%5)      // Within the last ~minute
-	// TODO: Use "latest" occasionally?
-	address, topics := s.RandomContract()
-	topicsJoined := strings.Join(topics, `","`)
-	_, err := fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_call","params":{"fromBlock":"0x%x","toBlock":"0x%x","address":"%s","topics":["%s"]}}`+"\n", s.ID(), fromBlock, toBlock, address, topicsJoined)
-	return err
-}
-
 func genEthGetTransactionReceipt(w io.Writer, s State) error {
 	txID := s.RandomTransaction()
 	_, err := fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_getTransactionReceipt","params":["%s"]}`+"\n", s.ID(), txID)
@@ -97,12 +86,6 @@ func installDefaults(gen *generator) {
 	//   545 "eth_getBalance"
 	//   607 "eth_getTransactionReceipt"
 	//  1928 "eth_call"
-
-	gen.Add(RandomQuery{
-		Method:   "eth_call",
-		Weight:   2000,
-		Generate: genEthCall,
-	})
 
 	gen.Add(RandomQuery{
 		Method:   "eth_getTransactionReceipt",
