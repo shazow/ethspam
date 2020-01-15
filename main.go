@@ -13,31 +13,6 @@ import (
 	"github.com/INFURA/go-ethlibs/node"
 )
 
-// Top query ratios
-
-/*
-      3 "eth_accounts"
-      4 "eth_getStorageAt"
-      4 "eth_syncing"
-      7 "net_peerCount"
-     12 "net_listening"
-     14 "eth_gasPrice"
-     16 "eth_sendRawTransaction"
-     25 "net_version"
-     30 "eth_getTransactionByBlockNumberAndIndex"
-     38 "eth_getBlockByHash"
-     45 "eth_estimateGas"
-     88 "eth_getCode"
-    252 "eth_getLogs"
-    255 "eth_getTransactionByHash"
-    333 "eth_blockNumber"
-    390 "eth_getTransactionCount"
-    399 "eth_getBlockByNumber"
-    545 "eth_getBalance"
-    607 "eth_getTransactionReceipt"
-   1928 "eth_call"
-*/
-
 var defaultWeb3Endpoint = "https://mainnet.infura.io/v3/af500e495f2d4e7cbcae36d0bfa66bcb" // Versus API key on Infura
 
 func exit(code int, format string, args ...interface{}) {
@@ -82,7 +57,7 @@ func main() {
 			}
 
 			select {
-			case <-time.After(5 * time.Second):
+			case <-time.After(15 * time.Second):
 			case <-ctx.Done():
 			}
 		}
@@ -97,8 +72,11 @@ func main() {
 			return
 		default:
 		}
-		if err := gen.Query(os.Stdout, state); err != nil {
-			exit(2, "failed to generate query: %s", err)
+		if err := gen.Query(os.Stdout, state); err == io.EOF {
+			// Done
+			return
+		} else if err != nil {
+			exit(2, "failed to write generated query: %s", err)
 		}
 	}
 }

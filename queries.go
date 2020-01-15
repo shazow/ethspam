@@ -23,6 +23,27 @@ func genEthGetTransactionReceipt(w io.Writer, s State) error {
 
 func installDefaults(gen *generator) {
 	// Top queries by weight, pulled from a 5000 Infura query sample on Dec 2019.
+	//     3 "eth_accounts"
+	//     4 "eth_getStorageAt"
+	//     4 "eth_syncing"
+	//     7 "net_peerCount"
+	//    12 "net_listening"
+	//    14 "eth_gasPrice"
+	//    16 "eth_sendRawTransaction"
+	//    25 "net_version"
+	//    30 "eth_getTransactionByBlockNumberAndIndex"
+	//    38 "eth_getBlockByHash"
+	//    45 "eth_estimateGas"
+	//    88 "eth_getCode"
+	//   252 "eth_getLogs"
+	//   255 "eth_getTransactionByHash"
+	//   333 "eth_blockNumber"
+	//   390 "eth_getTransactionCount"
+	//   399 "eth_getBlockByNumber"
+	//   545 "eth_getBalance"
+	//   607 "eth_getTransactionReceipt"
+	//  1928 "eth_call"
+
 	gen.Add(RandomQuery{
 		Method:   "eth_call",
 		Weight:   2000,
