@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"strings"
 )
 
 func genEthCall(w io.Writer, s State) error {
@@ -11,13 +12,66 @@ func genEthCall(w io.Writer, s State) error {
 	toBlock := s.CurrentBlock() - uint64(r%5)      // Within the last ~minute
 	// TODO: Use "latest" occasionally?
 	address, topics := s.RandomContract()
-	_, err := fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_call","params":{"fromBlock":"0x%x","toBlock":"0x%x","address":"%s","topics":%s}}`+"\n", s.ID(), fromBlock, toBlock, address, topics)
+	topicsJoined := strings.Join(topics, `","`)
+	_, err := fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_call","params":{"fromBlock":"0x%x","toBlock":"0x%x","address":"%s","topics":["%s"]}}`+"\n", s.ID(), fromBlock, toBlock, address, topicsJoined)
 	return err
 }
 
 func genEthGetTransactionReceipt(w io.Writer, s State) error {
 	txID := s.RandomTransaction()
 	_, err := fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_getTransactionReceipt","params":["%s"]}`+"\n", s.ID(), txID)
+	return err
+}
+
+func genEthGetBalance(w io.Writer, s State) error {
+	addr := s.RandomAddress()
+	_, err := fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_getBalance","params":["%s","latest"]}`+"\n", s.ID(), addr)
+	return err
+}
+
+func genEthGetBlockByNumber(w io.Writer, s State) error {
+	r := s.RandInt64()
+	// TODO: ~half of the block numbers are further from head
+	blockNum := s.CurrentBlock() - uint64(r%5) // Within the last ~minute
+	full := "true"
+	if r%2 >= 0 {
+		full = "false"
+	}
+
+	_, err := fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_getBlockByNumber","params":["0x%x",%s]}`+"\n", s.ID(), blockNum, full)
+	return err
+}
+
+func genEthGetTransactionCount(w io.Writer, s State) error {
+	addr := s.RandomAddress()
+	_, err := fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_getTransactionCount","params":["%s","pending"]}`+"\n", s.ID(), addr)
+	return err
+}
+
+func genEthBlockNumber(w io.Writer, s State) error {
+	_, err := fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_blockNumber"}`+"\n", s.ID())
+	return err
+}
+
+func genEthGetTransactionByHash(w io.Writer, s State) error {
+	txID := s.RandomTransaction()
+	_, err := fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_getTransactionByHash","params":["%s"]}`+"\n", s.ID(), txID)
+	return err
+}
+
+func genEthGetLogs(w io.Writer, s State) error {
+	r := s.RandInt64()
+	fromBlock := s.CurrentBlock() - uint64(r%5000) // Pick a block within the last ~day
+	toBlock := s.CurrentBlock() - uint64(r%5)      // Within the last ~minute
+	address, topics := s.RandomContract()
+	topicsJoined := strings.Join(topics, `","`)
+	_, err := fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_getLogs","params":{"fromBlock":"0x%x","toBlock":"0x%x","address":"%s","topics":["%s"]}}`+"\n", s.ID(), fromBlock, toBlock, address, topicsJoined)
+	return err
+}
+
+func genEthGetCode(w io.Writer, s State) error {
+	addr, _ := s.RandomContract()
+	_, err := fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_getCode","params":["%s","latest"]}`+"\n", s.ID(), addr)
 	return err
 }
 
@@ -54,5 +108,47 @@ func installDefaults(gen *generator) {
 		Method:   "eth_getTransactionReceipt",
 		Weight:   600,
 		Generate: genEthGetTransactionReceipt,
+	})
+
+	gen.Add(RandomQuery{
+		Method:   "eth_getBalance",
+		Weight:   550,
+		Generate: genEthGetBalance,
+	})
+
+	gen.Add(RandomQuery{
+		Method:   "eth_getBlockByNumber",
+		Weight:   400,
+		Generate: genEthGetBalance,
+	})
+
+	gen.Add(RandomQuery{
+		Method:   "eth_getTransactionCount",
+		Weight:   400,
+		Generate: genEthGetTransactionCount,
+	})
+
+	gen.Add(RandomQuery{
+		Method:   "eth_blockNumber",
+		Weight:   350,
+		Generate: genEthBlockNumber,
+	})
+
+	gen.Add(RandomQuery{
+		Method:   "eth_getTransactionByHash",
+		Weight:   250,
+		Generate: genEthGetTransactionByHash,
+	})
+
+	gen.Add(RandomQuery{
+		Method:   "eth_getLogs",
+		Weight:   250,
+		Generate: genEthGetLogs,
+	})
+
+	gen.Add(RandomQuery{
+		Method:   "eth_getCode",
+		Weight:   100,
+		Generate: genEthGetCode,
 	})
 }
