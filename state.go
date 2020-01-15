@@ -67,7 +67,7 @@ func (s *liveState) RandomAddress() string {
 }
 
 func (s *liveState) RandomContract() (addr string, topics []string) {
-	// TODO: Scrape https://etherscan.io/accounts instead?
+	// TODO: Scrape https://etherscan.io/accounts or https://ethgasstation.info/gasguzzlers.php instead?
 	idx := s.RandInt64() % int64(len(popularContracts))
 	c := popularContracts[idx]
 	return c.Addr, c.Topics
@@ -88,6 +88,18 @@ var popularContracts = []struct {
 	{
 		"0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5", // Compound ETH (cETH)
 		[]string{"0x4c209b5fc8ad50758f13e2e1088ba56a560dff690a1c6fef26394f4c03821c4f", "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", "0x0000000000000000000000004ddc2d193948926d02f9b1fe9e1daa0718270ed5"},
+	},
+	{
+		"0x2a0c0dbecc7e4d658f48e01e3fa353f44050c208", // IDEX
+		[]string{"0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7", "0xf341246adaac6f497bc2a656f546ab9e182111d630394f0c57c710a59a2cb567"},
+	},
+	{
+		"0x06012c8cf97bead5deae237070f9587f8e7a266d", // CryptoKitties
+		[]string{"0x241ea03ca20251805084d27d4440371c34a0b85ff108f6bb5611248f73818b80", "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", "0x0a5311bd2a6608f08a180df2ee7c5946819a649b204b554bb8e39825b2c50ad5"},
+	},
+	{
+		"0x8d12a197cb00d4747a1fe03395095ce2a5cc6819", // EtherDelta
+		[]string{"0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7", "0x1e0b760c386003e9cb9bcf4fcf3997886042859d9b6ed6320e804597fcdb28b0", "0xf341246adaac6f497bc2a656f546ab9e182111d630394f0c57c710a59a2cb567"},
 	},
 }
 
