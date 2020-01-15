@@ -1,9 +1,16 @@
 package main
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"io"
+	"math/rand"
+	"os"
 	"sort"
+	"time"
+
+	"github.com/INFURA/go-ethlibs/node"
 )
 
 // Top query ratios
@@ -31,8 +38,69 @@ import (
    1928 "eth_call"
 */
 
-func main() {
+var defaultWeb3Endpoint = "https://mainnet.infura.io/v3/af500e495f2d4e7cbcae36d0bfa66bcb" // Versus API key on Infura
 
+func exit(code int, format string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, format, args...)
+	os.Exit(code)
+}
+
+func main() {
+	gen := generator{}
+	installDefaults(&gen)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	client, err := node.NewClient(ctx, defaultWeb3Endpoint)
+	if err != nil {
+		exit(1, "failed to make a new client: %s", err)
+	}
+	mkState := stateProducer{
+		client: client,
+	}
+
+	// stateChannel 😂
+	stateChannel := make(chan State, 1)
+
+	// We don't need a high quality randomness source, just for benchmark shuffling
+	randSrc := rand.NewSource(time.Now().UnixNano())
+	go func() {
+		state := liveState{
+			idGen:   &idGenerator{},
+			randSrc: randSrc,
+		}
+		for {
+			newState, err := mkState.Refresh(&state)
+			if err != nil {
+				exit(2, "failed to refresh state")
+			}
+			select {
+			case stateChannel <- newState:
+			case <-ctx.Done():
+				return
+			}
+
+			select {
+			case <-time.After(5 * time.Second):
+			case <-ctx.Done():
+			}
+		}
+	}()
+
+	state := <-stateChannel
+	for {
+		// Update state when a new one is emitted
+		select {
+		case state = <-stateChannel:
+		case <-ctx.Done():
+			return
+		default:
+		}
+		if err := gen.Query(os.Stdout, state); err != nil {
+			exit(2, "failed to generate query: %s", err)
+		}
+	}
 }
 
 type Generator func(io.Writer, State) error
@@ -48,8 +116,14 @@ type generator struct {
 	totalWeight int64
 }
 
-// Add inserts a random query generator with a weighted probability
+// Add inserts a random query generator with a weighted probability. Not
+// goroutine-safe, should be run once during initialization.
 func (g *generator) Add(query RandomQuery) {
+	if g.queries == nil {
+		g.queries = make([]RandomQuery, 1)
+	} else {
+		g.queries = append(g.queries, RandomQuery{})
+	}
 	// Maintain weight sort
 	idx := sort.Search(len(g.queries), func(i int) bool { return g.queries[i].Weight < query.Weight })
 	copy(g.queries[idx+1:], g.queries[idx:])
@@ -63,6 +137,7 @@ func (g *generator) Query(w io.Writer, s State) error {
 	if len(g.queries) == 0 {
 		return errors.New("no query generators available")
 	}
+
 	weight := s.RandInt64() % g.totalWeight
 
 	var current int64

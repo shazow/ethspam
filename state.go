@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"math/rand"
 	"sync/atomic"
 
@@ -12,7 +13,7 @@ import (
 type State interface {
 	RandInt64() int64
 	ID() int64
-	CurrentBlock() int64
+	CurrentBlock() uint64
 	RandomContract() (addr string, topics []string)
 	RandomAddress() string
 	RandomTransaction() string
@@ -34,6 +35,7 @@ type liveState struct {
 
 	currentBlock uint64
 	transactions []string
+	addresses    []string
 }
 
 func (s *liveState) ID() int64 {
@@ -54,6 +56,14 @@ func (s *liveState) RandomTransaction() string {
 	}
 	idx := int(s.randSrc.Int63()) % len(s.transactions)
 	return s.transactions[idx]
+}
+
+func (s *liveState) RandomAddress() string {
+	if len(s.addresses) == 0 {
+		return ""
+	}
+	idx := int(s.randSrc.Int63()) % len(s.addresses)
+	return s.addresses[idx]
 }
 
 func (s *liveState) RandomContract() (addr string, topics []string) {
@@ -86,13 +96,19 @@ type stateProducer struct {
 }
 
 func (p *stateProducer) Refresh(oldState *liveState) (*liveState, error) {
-	b, err := p.client.BlockByNumberOrTag(context.Background(), *(eth.MustBlockNumberOrTag("latest")), false)
+	if oldState == nil {
+		return nil, errors.New("must provide old state to refresh")
+	}
+
+	b, err := p.client.BlockByNumberOrTag(context.Background(), *(eth.MustBlockNumberOrTag("latest")), true)
 	if err != nil {
 		return nil, err
 	}
 
 	txs := make([]string, 0, len(b.Transactions))
+	addrs := make([]string, 0, len(b.Transactions))
 	for _, tx := range b.Transactions {
+		addrs = append(addrs, tx.From.String())
 		txs = append(txs, tx.Hash.String())
 	}
 
@@ -101,7 +117,8 @@ func (p *stateProducer) Refresh(oldState *liveState) (*liveState, error) {
 		randSrc: oldState.randSrc,
 
 		currentBlock: b.Number.UInt64(),
-		transactions: txs, // TODO: Keep some old transactions in the mix?
+		transactions: txs,   // TODO: Keep some old transactions in the mix?
+		addresses:    addrs, // TODO: Keep some old addresses in the mix?
 	}
 	return &state, nil
 }
