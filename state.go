@@ -130,13 +130,19 @@ func (p *stateProducer) Refresh(oldState *liveState) (*liveState, error) {
 		return nil, err
 	}
 
-	txs := make([]eth.Transaction, 0, len(b.Transactions))
-	for i, tx := range b.Transactions {
-		// Keep some old transactions randomly
-		if i >= len(oldState.transactions) || oldState.RandInt64()%2 == 0 {
+	txs := oldState.transactions
+	for _, tx := range b.Transactions {
+		if tx.Transaction.Value.Int64() > 0 {
+			// Only take 0-value transactions, hopefully these are all contract calls.
+			continue
+		}
+		if len(oldState.transactions) < 50 {
 			txs = append(txs, tx.Transaction)
-		} else {
-			txs = append(txs, oldState.transactions[i])
+			continue
+		}
+		// Keep some old transactions randomly
+		if oldState.RandInt64()%2 == 0 {
+			txs = append(txs, tx.Transaction)
 		}
 	}
 

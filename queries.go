@@ -8,7 +8,12 @@ import (
 
 func genEthCall(w io.Writer, s State) error {
 	to, from, input := s.RandomCall()
-	_, err := fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_call","params":[{"to":"%s","from":"%s","input":"%s"}]}`+"\n", s.ID(), to, from, input)
+	var err error
+	if to != "" {
+		_, err = fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_call","params":[{"to":%q,"from":%q,"data":%q},"latest"]}`+"\n", s.ID(), to, from, input)
+	} else {
+		_, err = fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_call","params":[{"from":%q,"data":%q},"latest"]}`+"\n", s.ID(), from, input)
+	}
 	return err
 }
 
