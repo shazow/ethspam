@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+// TODO: Replace with proper JSON serialization? Originally was written to be quick&dirty for maximum perf.
+
 func genEthCall(w io.Writer, s State) error {
 	// We eth_call the block before the call actually happened to avoid collision reverts
 	to, from, input, block := s.RandomCall()
