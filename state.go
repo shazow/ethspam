@@ -17,7 +17,7 @@ type State interface {
 	RandomContract() (addr string, topics []string)
 	RandomAddress() string
 	RandomTransaction() string
-	RandomCall() (to, from, input string)
+	RandomCall() (to, from, input string, block uint64)
 }
 
 type idGenerator struct {
@@ -66,7 +66,7 @@ func (s *liveState) RandomAddress() string {
 	return s.transactions[idx].From.String()
 }
 
-func (s *liveState) RandomCall() (to, from, input string) {
+func (s *liveState) RandomCall() (to, from, input string, block uint64) {
 	if len(s.transactions) == 0 {
 		return
 	}
@@ -76,6 +76,7 @@ func (s *liveState) RandomCall() (to, from, input string) {
 	}
 	from = tx.From.String()
 	input = tx.Input.String()
+	block = tx.BlockNumber.UInt64()
 	return
 }
 
@@ -130,19 +131,20 @@ func (p *stateProducer) Refresh(oldState *liveState) (*liveState, error) {
 		return nil, err
 	}
 
+	// txs will grow to the maximum contract transaction list size we'll see in a block, and the higher-indexed ones will stick around longer
 	txs := oldState.transactions
-	for _, tx := range b.Transactions {
+	for i, tx := range b.Transactions {
 		if tx.Transaction.Value.Int64() > 0 {
 			// Only take 0-value transactions, hopefully these are all contract calls.
 			continue
 		}
-		if len(oldState.transactions) < 50 {
+		if len(oldState.transactions) < 50 || i > len(txs) {
 			txs = append(txs, tx.Transaction)
 			continue
 		}
 		// Keep some old transactions randomly
-		if oldState.RandInt64()%2 == 0 {
-			txs = append(txs, tx.Transaction)
+		if oldState.RandInt64()%6 > 2 {
+			txs[i] = tx.Transaction
 		}
 	}
 

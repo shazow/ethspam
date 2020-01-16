@@ -7,12 +7,13 @@ import (
 )
 
 func genEthCall(w io.Writer, s State) error {
-	to, from, input := s.RandomCall()
+	// We eth_call the block before the call actually happened to avoid collision reverts
+	to, from, input, block := s.RandomCall()
 	var err error
 	if to != "" {
-		_, err = fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_call","params":[{"to":%q,"from":%q,"data":%q},"latest"]}`+"\n", s.ID(), to, from, input)
+		_, err = fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_call","params":[{"to":%q,"from":%q,"data":%q},"0x%x"]}`+"\n", s.ID(), to, from, input, block-1)
 	} else {
-		_, err = fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_call","params":[{"from":%q,"data":%q},"latest"]}`+"\n", s.ID(), from, input)
+		_, err = fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_call","params":[{"from":%q,"data":%q},"0x%x"]}`+"\n", s.ID(), from, input, block-1)
 	}
 	return err
 }
