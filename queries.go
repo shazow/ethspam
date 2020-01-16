@@ -6,6 +6,12 @@ import (
 	"strings"
 )
 
+func genEthCall(w io.Writer, s State) error {
+	to, from, input := s.RandomCall()
+	_, err := fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_call","params":[{"to":"%s","from":"%s","input":"%s"}]}`+"\n", s.ID(), to, from, input)
+	return err
+}
+
 func genEthGetTransactionReceipt(w io.Writer, s State) error {
 	txID := s.RandomTransaction()
 	_, err := fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%d,"method":"eth_getTransactionReceipt","params":["%s"]}`+"\n", s.ID(), txID)
@@ -87,6 +93,12 @@ func installDefaults(gen *generator) {
 	//   545 "eth_getBalance"
 	//   607 "eth_getTransactionReceipt"
 	//  1928 "eth_call"
+
+	gen.Add(RandomQuery{
+		Method:   "eth_call",
+		Weight:   2000,
+		Generate: genEthCall,
+	})
 
 	gen.Add(RandomQuery{
 		Method:   "eth_getTransactionReceipt",

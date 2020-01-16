@@ -17,6 +17,7 @@ type State interface {
 	RandomContract() (addr string, topics []string)
 	RandomAddress() string
 	RandomTransaction() string
+	RandomCall() (to, from, input string)
 }
 
 type idGenerator struct {
@@ -34,8 +35,7 @@ type liveState struct {
 	randSrc rand.Source
 
 	currentBlock uint64
-	transactions []string
-	addresses    []string
+	transactions []eth.Transaction
 }
 
 func (s *liveState) ID() int64 {
@@ -55,15 +55,28 @@ func (s *liveState) RandomTransaction() string {
 		return ""
 	}
 	idx := int(s.randSrc.Int63()) % len(s.transactions)
-	return s.transactions[idx]
+	return s.transactions[idx].Hash.String()
 }
 
 func (s *liveState) RandomAddress() string {
-	if len(s.addresses) == 0 {
+	if len(s.transactions) == 0 {
 		return ""
 	}
-	idx := int(s.randSrc.Int63()) % len(s.addresses)
-	return s.addresses[idx]
+	idx := int(s.randSrc.Int63()) % len(s.transactions)
+	return s.transactions[idx].From.String()
+}
+
+func (s *liveState) RandomCall() (to, from, input string) {
+	if len(s.transactions) == 0 {
+		return
+	}
+	tx := s.transactions[int(s.randSrc.Int63())%len(s.transactions)]
+	if tx.To != nil {
+		to = tx.To.String()
+	}
+	from = tx.From.String()
+	input = tx.Input.String()
+	return
 }
 
 func (s *liveState) RandomContract() (addr string, topics []string) {
@@ -117,11 +130,14 @@ func (p *stateProducer) Refresh(oldState *liveState) (*liveState, error) {
 		return nil, err
 	}
 
-	txs := make([]string, 0, len(b.Transactions))
-	addrs := make([]string, 0, len(b.Transactions))
-	for _, tx := range b.Transactions {
-		addrs = append(addrs, tx.From.String())
-		txs = append(txs, tx.Hash.String())
+	txs := make([]eth.Transaction, 0, len(b.Transactions))
+	for i, tx := range b.Transactions {
+		// Keep some old transactions randomly
+		if i >= len(oldState.transactions) || oldState.RandInt64()%2 == 0 {
+			txs = append(txs, tx.Transaction)
+		} else {
+			txs = append(txs, oldState.transactions[i])
+		}
 	}
 
 	state := liveState{
@@ -129,8 +145,7 @@ func (p *stateProducer) Refresh(oldState *liveState) (*liveState, error) {
 		randSrc: oldState.randSrc,
 
 		currentBlock: b.Number.UInt64(),
-		transactions: txs,   // TODO: Keep some old transactions in the mix?
-		addresses:    addrs, // TODO: Keep some old addresses in the mix?
+		transactions: txs,
 	}
 	return &state, nil
 }
