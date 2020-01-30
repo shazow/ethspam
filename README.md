@@ -7,6 +7,12 @@ Per second, ethspam generates around 500,000 lines, or 120 megabytes of data, on
 
 Also makes for an okay superniche screensaver.
 
+
+## Setup
+
+[Grab a binary release](https://github.com/shazow/ethspam/releases) or build from source.
+
+
 ## License
 
 MIT
