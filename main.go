@@ -11,9 +11,18 @@ import (
 	"time"
 
 	"github.com/INFURA/go-ethlibs/node"
+	flags "github.com/jessevdk/go-flags"
 )
 
-var defaultWeb3Endpoint = "https://mainnet.infura.io/v3/af500e495f2d4e7cbcae36d0bfa66bcb" // Versus API key on Infura
+// Version of the binary, assigned during build.
+var Version = "dev"
+
+// Options contains the flag options
+type Options struct {
+	Web3Endpoint string `long:"rpc" description:"Ethereum JSONRPC provider, such as Infura or Cloudflare" default:"https://mainnet.infura.io/v3/af500e495f2d4e7cbcae36d0bfa66bcb"` // Versus API key on Infura
+
+	Version bool `long:"version" description:"Print version and exit."`
+}
 
 func exit(code int, format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, format, args...)
@@ -21,13 +30,27 @@ func exit(code int, format string, args ...interface{}) {
 }
 
 func main() {
+	options := Options{}
+	p, err := flags.NewParser(&options, flags.Default).ParseArgs(os.Args[1:])
+	if err != nil {
+		if p == nil {
+			fmt.Println(err)
+		}
+		return
+	}
+
+	if options.Version {
+		fmt.Println(Version)
+		os.Exit(0)
+	}
+
 	gen := generator{}
 	installDefaults(&gen)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	client, err := node.NewClient(ctx, defaultWeb3Endpoint)
+	client, err := node.NewClient(ctx, options.Web3Endpoint)
 	if err != nil {
 		exit(1, "failed to make a new client: %s", err)
 	}
