@@ -19,7 +19,8 @@ var Version = "dev"
 
 // Options contains the flag options
 type Options struct {
-	Web3Endpoint string `long:"rpc" description:"Ethereum JSONRPC provider, such as Infura or Cloudflare" default:"https://mainnet.infura.io/v3/af500e495f2d4e7cbcae36d0bfa66bcb"` // Versus API key on Infura
+	Methods      map[string]int64 `short:"m" long:"method" description:"A map from json rpc methods to their weight" default:"eth_getCode:100" default:"eth_getLogs:250" default:"eth_getTransactionByHash:250" default:"eth_blockNumber:350" default:"eth_getTransactionCount:400" default:"eth_getBlockByNumber:400" default:"eth_getBalance:550" default:"eth_getTransactionReceipt:600" default:"eth_call:2000"`
+	Web3Endpoint string           `long:"rpc" description:"Ethereum JSONRPC provider, such as Infura or Cloudflare" default:"https://mainnet.infura.io/v3/af500e495f2d4e7cbcae36d0bfa66bcb"` // Versus API key on Infura
 
 	Version bool `long:"version" description:"Print version and exit."`
 }
@@ -45,7 +46,10 @@ func main() {
 	}
 
 	gen := generator{}
-	installDefaults(&gen)
+	err = installDefaults(&gen, options.Methods)
+	if err != nil {
+		exit(1, "failed to install defaults: %s", err)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

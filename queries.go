@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -79,7 +80,7 @@ func genEthGetCode(w io.Writer, s State) error {
 	return err
 }
 
-func installDefaults(gen *generator) {
+func installDefaults(gen *generator, methods map[string]int64) error {
 	// Top queries by weight, pulled from a 5000 Infura query sample on Dec 2019.
 	//     3 "eth_accounts"
 	//     4 "eth_getStorageAt"
@@ -102,57 +103,28 @@ func installDefaults(gen *generator) {
 	//   607 "eth_getTransactionReceipt"
 	//  1928 "eth_call"
 
-	gen.Add(RandomQuery{
-		Method:   "eth_call",
-		Weight:   2000,
-		Generate: genEthCall,
-	})
+	rpcMethod := map[string]func(io.Writer, State) error{
+		"eth_call":                  genEthCall,
+		"eth_getTransactionReceipt": genEthGetTransactionReceipt,
+		"eth_getBalance":            genEthGetBalance,
+		"eth_getBlockByNumber":      genEthGetBlockByNumber,
+		"eth_getTransactionCount":   genEthGetTransactionCount,
+		"eth_blockNumber":           genEthBlockNumber,
+		"eth_getTransactionByHash":  genEthGetTransactionByHash,
+		"eth_getLogs":               genEthGetLogs,
+		"eth_getCode":               genEthGetCode,
+	}
 
-	gen.Add(RandomQuery{
-		Method:   "eth_getTransactionReceipt",
-		Weight:   600,
-		Generate: genEthGetTransactionReceipt,
-	})
+	for method, weight := range methods {
+		if _, err := rpcMethod[method]; err == false {
+			return errors.New(method + " is not supported")
+		}
+		gen.Add(RandomQuery{
+			Method:   method,
+			Weight:   weight,
+			Generate: rpcMethod[method],
+		})
+	}
 
-	gen.Add(RandomQuery{
-		Method:   "eth_getBalance",
-		Weight:   550,
-		Generate: genEthGetBalance,
-	})
-
-	gen.Add(RandomQuery{
-		Method:   "eth_getBlockByNumber",
-		Weight:   400,
-		Generate: genEthGetBalance,
-	})
-
-	gen.Add(RandomQuery{
-		Method:   "eth_getTransactionCount",
-		Weight:   400,
-		Generate: genEthGetTransactionCount,
-	})
-
-	gen.Add(RandomQuery{
-		Method:   "eth_blockNumber",
-		Weight:   350,
-		Generate: genEthBlockNumber,
-	})
-
-	gen.Add(RandomQuery{
-		Method:   "eth_getTransactionByHash",
-		Weight:   250,
-		Generate: genEthGetTransactionByHash,
-	})
-
-	gen.Add(RandomQuery{
-		Method:   "eth_getLogs",
-		Weight:   250,
-		Generate: genEthGetLogs,
-	})
-
-	gen.Add(RandomQuery{
-		Method:   "eth_getCode",
-		Weight:   100,
-		Generate: genEthGetCode,
-	})
+	return nil
 }
