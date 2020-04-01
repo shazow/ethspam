@@ -77,6 +77,13 @@ func main() {
 		for {
 			newState, err := mkState.Refresh(&state)
 			if err != nil {
+				// It can happen in some testnets that most of the blocks
+				// are empty(no transaction included), don't refresh the
+				// generator state without new inclusion.
+				if err == errEmptyBlock {
+					time.Sleep(time.Second * 5)
+					continue
+				}
 				exit(2, "failed to refresh state")
 			}
 			select {

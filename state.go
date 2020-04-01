@@ -10,6 +10,8 @@ import (
 	"github.com/INFURA/go-ethlibs/node"
 )
 
+var errEmptyBlock = errors.New("the sampled block is empty")
+
 type State interface {
 	RandInt64() int64
 	ID() int64
@@ -130,7 +132,10 @@ func (p *stateProducer) Refresh(oldState *liveState) (*liveState, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	// Short circuit if the sampled block is empty
+	if len(b.Transactions) == 0 {
+		return nil, errEmptyBlock
+	}
 	// txs will grow to the maximum contract transaction list size we'll see in a block, and the higher-indexed ones will stick around longer
 	txs := oldState.transactions
 	for i, tx := range b.Transactions {
