@@ -81,7 +81,11 @@ func main() {
 				// are empty(no transaction included), don't refresh the
 				// generator state without new inclusion.
 				if err == errEmptyBlock {
-					time.Sleep(time.Second * 5)
+					select {
+					case <-time.After(5 * time.Second):
+					case <-ctx.Done():
+						return
+					}
 					continue
 				}
 				exit(2, "failed to refresh state")
