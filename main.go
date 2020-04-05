@@ -12,6 +12,7 @@ import (
 
 	"github.com/INFURA/go-ethlibs/node"
 	flags "github.com/jessevdk/go-flags"
+	"golang.org/x/time/rate"
 )
 
 // Version of the binary, assigned during build.
@@ -21,6 +22,7 @@ var Version = "dev"
 type Options struct {
 	Methods      map[string]int64 `short:"m" long:"method" description:"A map from json rpc methods to their weight" default:"eth_getCode:100" default:"eth_getLogs:250" default:"eth_getTransactionByHash:250" default:"eth_blockNumber:350" default:"eth_getTransactionCount:400" default:"eth_getBlockByNumber:400" default:"eth_getBalance:550" default:"eth_getTransactionReceipt:600" default:"eth_call:2000"`
 	Web3Endpoint string           `long:"rpc" description:"Ethereum JSONRPC provider, such as Infura or Cloudflare" default:"https://mainnet.infura.io/v3/af500e495f2d4e7cbcae36d0bfa66bcb"` // Versus API key on Infura
+	RateLimit    float64          `short:"r" long:"ratelimit" description:"rate limit for generating jsonrpc calls"`
 
 	Version bool `long:"version" description:"Print version and exit."`
 }
@@ -75,6 +77,17 @@ func main() {
 		for {
 			newState, err := mkState.Refresh(&state)
 			if err != nil {
+				// It can happen in some testnets that most of the blocks
+				// are empty(no transaction included), don't refresh the
+				// generator state without new inclusion.
+				if err == errEmptyBlock {
+					select {
+					case <-time.After(5 * time.Second):
+					case <-ctx.Done():
+						return
+					}
+					continue
+				}
 				exit(2, "failed to refresh state")
 			}
 			select {
@@ -90,6 +103,10 @@ func main() {
 		}
 	}()
 
+	var rlimit *rate.Limiter
+	if options.RateLimit != 0 {
+		rlimit = rate.NewLimiter(rate.Limit(options.RateLimit), 10)
+	}
 	state := <-stateChannel
 	for {
 		// Update state when a new one is emitted
@@ -98,6 +115,9 @@ func main() {
 		case <-ctx.Done():
 			return
 		default:
+		}
+		if rlimit != nil {
+			rlimit.Wait(context.Background())
 		}
 		if err := gen.Query(os.Stdout, state); err == io.EOF {
 			// Done
