@@ -8,13 +8,20 @@ Per second, ethspam generates around 500,000 lines, or 120 megabytes of data, on
 Also makes for an okay superniche screensaver.
 
 
-## Setup
+## Getting Started
 
 A few options:
 
-- [Grab a binary release](https://github.com/shazow/ethspam/releases)
-- Build from source: `go get github.com/shazow/ethspam`
+- [Grab a binary release](https://github.com/shazow/ethspam/releases), or
+- Build from source: `go get github.com/shazow/ethspam`, or
 - Use the Docker Hub image: [`docker pull shazow/ethspam`](https://hub.docker.com/r/shazow/ethspam)
+
+Then run it and enjoy. Ethspam will emit output but it can be throttled by backflow pressure from the consumer. If the process you're piping to isn't consuming the output fast enough, ethspam will slow down.
+
+```
+$ ethspam | head
+...
+```
 
 
 ## License
