@@ -13,6 +13,12 @@ Also makes for an okay superniche screensaver.
 [Grab a binary release](https://github.com/shazow/ethspam/releases) or build from source.
 
 
+## Build docker image and push to docker hub
+
+```
+docker build -t shazow/ethspam .
+docker push shazow/ethspam
+```
 ## License
 
 MIT
