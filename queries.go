@@ -116,6 +116,9 @@ func installDefaults(gen *generator, methods map[string]int64) error {
 	}
 
 	for method, weight := range methods {
+		if weight == 0 {
+			continue
+		}
 		if _, err := rpcMethod[method]; err == false {
 			return errors.New(method + " is not supported")
 		}
